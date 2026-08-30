@@ -13,7 +13,7 @@ TARGET=${1:-web2}
 DURATION=60
 
 echo "Generating background load against HAProxy for ${DURATION}s..."
-( for i in $(seq 1 $((DURATION * 10))); do
+( for _ in $(seq 1 $((DURATION * 10))); do
     curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/
     sleep 0.1
   done > /tmp/failure_test_results.log ) &
