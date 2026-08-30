@@ -1,0 +1,221 @@
+
+
+x-airflow-common: &airflow-common
+  build:
+    context: ./airflow
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__WEBSERVER__SECRET_KEY: "supersecretkey_change_me"
+    DB_HOST: app-db
+    DB_PORT: "5432"
+    DB_NAME: packets_db
+    DB_USER: packets
+    DB_PASSWORD: packets
+    PCAP_DIR: /opt/airflow/pcap
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./parser:/opt/airflow/parser
+    - pcap_data:/opt/airflow/pcap
+    - airflow_logs:/opt/airflow/logs
+    # Lets Airflow start/stop tcpdump inside the haproxy container via the
+    # Docker SDK, instead of tcpdump running unattended forever.
+    - /var/run/docker.sock:/var/run/docker.sock
+  networks: [appnet]
+  depends_on:
+    airflow-db:
+      condition: service_healthy
+
+services:
+  # ---------- Phase 1: Web servers ----------
+  web1:
+    image: httpd:2.4
+    container_name: web1
+    volumes:
+      - ./apache/web1/index.html:/usr/local/apache2/htdocs/index.html:ro
+    networks:
+      - appnet
+
+  web2:
+    image: httpd:2.4
+    container_name: web2
+    volumes:
+      - ./apache/web2/index.html:/usr/local/apache2/htdocs/index.html:ro
+    networks:
+      - appnet
+
+  web3:
+    image: httpd:2.4
+    container_name: web3
+    volumes:
+      - ./apache/web3/index.html:/usr/local/apache2/htdocs/index.html:ro
+    networks:
+      - appnet
+
+  # ---------- Phase 2 + 4: Load balancer + stats/metrics + capture target ----------
+  haproxy:
+    build: ./haproxy
+    container_name: haproxy
+
+    ports:
+      - "8080:80"
+      - "8404:8404"
+
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - pcap_data:/pcap
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    depends_on:
+      - web1
+      - web2
+      - web3
+
+    networks:
+      - appnet
+
+  # ---------- Phase 8: Storage for parsed packet data ----------
+  app-db:
+    image: postgres:15
+    container_name: app-db
+    environment:
+      POSTGRES_USER: packets
+      POSTGRES_PASSWORD: packets
+      POSTGRES_DB: packets_db
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "packets"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [appnet]
+
+  # ---------- Airflow metadata database ----------
+  airflow-db:
+    image: postgres:15
+    container_name: airflow-db
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [appnet]
+
+  # ---------- Phase 6: Airflow orchestration (owns the full capture lifecycle) ----------
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin --password admin \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com || true
+        airflow variables set CAPTURE_DURATION_SECONDS 55
+        airflow variables set ARCHIVE_RETENTION_DAYS 3
+        airflow variables set BALANCE_ALGORITHM roundrobin
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8081:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------- Tier 1: infra metrics ----------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - haproxy
+    networks: [appnet]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks: [appnet]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks: [appnet]
+
+  # ---------- Phase 9: Analytics dashboard (SQL-native, no custom code) ----------
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    ports:
+      - "3000:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+    depends_on:
+      app-db:
+        condition: service_healthy
+    networks: [appnet]
+
+networks:
+  appnet:
+    driver: bridge
+
+volumes:
+  pcap_data:
+  app_db_data:
+  airflow_db_data:
+  airflow_logs:
+  prometheus_data:
+  grafana_data:
+  metabase_data:

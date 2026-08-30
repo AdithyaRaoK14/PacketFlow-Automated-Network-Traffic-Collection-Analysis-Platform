@@ -1,0 +1,93 @@
+{
+  "title": "Packet Project - Infrastructure Overview",
+  "uid": "packet-project-infra",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HAProxy: Backend Server Status (1 = up)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "haproxy_server_up",
+          "legendFormat": "{{server}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "HAProxy: HTTP Responses/sec by Backend",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(haproxy_server_http_responses_total[1m])",
+          "legendFormat": "{{server}} {{code}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "HAProxy: Active Sessions",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "haproxy_server_current_sessions",
+          "legendFormat": "{{server}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Container CPU Usage (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{name=~\"web1|web2|web3|haproxy\"}[1m])) by (name) * 100",
+          "legendFormat": "{{name}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Container Memory Usage (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\"web1|web2|web3|haproxy\"} / 1024 / 1024",
+          "legendFormat": "{{name}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Container Network Throughput (bytes/sec)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(container_network_transmit_bytes_total{name=~\"web1|web2|web3|haproxy\"}[1m])",
+          "legendFormat": "{{name}} tx"
+        },
+        {
+          "expr": "rate(container_network_receive_bytes_total{name=~\"web1|web2|web3|haproxy\"}[1m])",
+          "legendFormat": "{{name}} rx"
+        }
+      ]
+    }
+  ]
+}
