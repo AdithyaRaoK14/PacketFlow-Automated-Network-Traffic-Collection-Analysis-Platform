@@ -26,11 +26,7 @@ jobs:
       - name: Install flake8
         run: pip install flake8
       - name: Run flake8
-        run: |
-          flake8 parser dashboard airflow/dags \
-            --max-line-length=120 \
-            --extend-exclude=__pycache__ \
-            --extend-ignore=E203,W503
+        run: flake8 parser dashboard airflow/dags
 
   lint-shell:
     name: Lint shell scripts
