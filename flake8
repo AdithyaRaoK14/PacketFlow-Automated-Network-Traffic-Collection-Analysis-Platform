@@ -1,7 +1,0 @@
-[flake8]
-max-line-length = 120
-extend-exclude = __pycache__
-extend-ignore = E203, W503
-per-file-ignores =
-    airflow/dags/packet_pipeline_dag.py: E402
-    parser/parse_packets.py: E402
