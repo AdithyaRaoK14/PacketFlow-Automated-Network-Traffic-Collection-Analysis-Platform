@@ -2,8 +2,8 @@
 
 ### Automated Network Traffic Collection & Analysis Platform
 
-[![CI](https://github.com/AdithyaRaoK14/packetflow/actions/workflows/ci.yml/badge.svg)](https://github.com/AdithyaRaoK14/packetflow/actions/workflows/ci.yml)
-[![Docker Build](https://github.com/AdithyaRaoK14/packetflow/actions/workflows/docker-build.yml/badge.svg)](https://github.com/AdithyaRaoK14/packetflow/actions/workflows/docker-build.yml)
+[![CI](https://github.com/AdithyaRaoK14/PacketFlow-Automated-Network-Traffic-Collection-Analysis-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/AdithyaRaoK14/PacketFlow-Automated-Network-Traffic-Collection-Analysis-Platform/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/AdithyaRaoK14/PacketFlow-Automated-Network-Traffic-Collection-Analysis-Platform/actions/workflows/docker-build.yml/badge.svg)](https://github.com/AdithyaRaoK14/PacketFlow-Automated-Network-Traffic-Collection-Analysis-Platform/actions/workflows/docker-build.yml)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Airflow](https://img.shields.io/badge/Orchestration-Apache%20Airflow-017CEE?logo=apacheairflow&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/Storage-PostgreSQL-4169E1?logo=postgresql&logoColor=white)
@@ -28,7 +28,6 @@ analytics.
 ## Table of contents
 - [Architecture](#architecture)
 - [What you'll learn](#what-youll-learn)
-- [Thesis / defense prep](#thesis--defense-prep)
 - [Prerequisites](#prerequisites)
 - [Project layout](#project-layout)
 - [Getting started](#phase-1--start-everything)
@@ -91,22 +90,6 @@ Two separate concerns, two separate tools, on purpose:
 - Resilience/performance testing: induced failures, network impairment,
   and load ramping
 
-## Thesis / defense prep
-- `docs/architecture-traffic-path.svg` and `docs/architecture-data-pipeline.svg`
-  — clean architecture diagrams (matching the ASCII ones above, but
-  presentation-ready) for slides or a report.
-- `docs/DATA_DICTIONARY.md` — every table and column, with a one-line
-  reason it exists.
-- `docs/EXAMINER_QA.md` — prepared answers to the design-decision questions
-  an examiner is likely to ask (why HAProxy, why Airflow, why normalize the
-  schema, what happens on failure, how this would scale, etc.) — read this
-  before a defense, not during one.
-- `docs/AIRFLOW_STUDY_GUIDE.md` — six small standalone DAGs
-  (`airflow/dags/study_*.py`), each demonstrating exactly one Airflow
-  concept (dependencies, branching, parallel tasks, XCom, operator types,
-  scheduling), if you need to actually learn/demonstrate how Airflow works
-  rather than just run the finished pipeline.
-
 ## Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
   (includes Docker Compose)
@@ -149,7 +132,8 @@ packetflow/
 ├── airflow/dags/
 │   ├── packet_pipeline_dag.py  # the real pipeline
 │   └── study_*.py              # 6 small DAGs for learning Airflow itself
-│                                 (see docs/AIRFLOW_STUDY_GUIDE.md)
+│                                 (dependencies, branching, parallel tasks,
+│                                 XCom, operator types, scheduling)
 ├── monitoring/
 │   ├── prometheus/prometheus.yml
 │   └── grafana/provisioning/   # auto-provisioned datasource + dashboard
@@ -158,11 +142,6 @@ packetflow/
 │   ├── failure_test.sh         # kill a backend mid-traffic, observe failover
 │   ├── stress_test.sh          # ramp concurrency, save results per level
 │   └── benchmark.sh            # capture rate / parse+insert throughput / totals
-├── docs/
-│   ├── architecture-traffic-path.svg
-│   ├── architecture-data-pipeline.svg
-│   ├── DATA_DICTIONARY.md      # every table, every column, why it exists
-│   └── EXAMINER_QA.md          # prepared answers to likely defense questions
 ├── dashboard/                  # OPTIONAL legacy Streamlit alternative
 │                                 to Metabase (not started by default —
 │                                 see "Optional: Streamlit instead of
