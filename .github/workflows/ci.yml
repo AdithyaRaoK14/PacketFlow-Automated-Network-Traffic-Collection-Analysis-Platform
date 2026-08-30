@@ -42,6 +42,7 @@ jobs:
         with:
           scandir: "."
           ignore_paths: airflow apache dashboard db docs monitoring parser
+          format: tty
 
   lint-dockerfiles:
     name: Lint Dockerfiles
