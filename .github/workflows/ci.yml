@@ -40,8 +40,8 @@ jobs:
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@master
         with:
-          scandir: "./scripts"
-          additional_files: "haproxy/entrypoint.sh"
+          scandir: "."
+          ignore_paths: airflow apache dashboard db docs monitoring parser
 
   lint-dockerfiles:
     name: Lint Dockerfiles
