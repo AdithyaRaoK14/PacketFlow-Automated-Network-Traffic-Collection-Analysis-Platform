@@ -14,17 +14,6 @@ generates traffic, load-balances it, captures and parses packets under full
 Airflow orchestration, and exposes both infrastructure metrics and traffic
 analytics.
 
-> **One-line description you can hand a professor:**
-> An automated network traffic collection and analysis platform that
-> simulates a production environment using Docker. The system generates
-> traffic with JMeter, distributes it through HAProxy to multiple Apache
-> servers, captures network packets using tcpdump orchestrated end-to-end by
-> Apache Airflow, parses and stores structured packet/flow metadata in
-> PostgreSQL, and visualizes traffic analytics and infrastructure health
-> through Metabase and Grafana. It also supports multiple load-balancing
-> strategies, server failure simulations, and performance benchmarking under
-> varying traffic loads.
-
 ## Table of contents
 - [Architecture](#architecture)
 - [What you'll learn](#what-youll-learn)
